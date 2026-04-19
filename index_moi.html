@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Thi thử 50 câu - 60 phút</title>
+<script src="https://cdn.jsdelivr.net/npm/mammoth/mammoth.browser.min.js"></script>
+
+<style>
+body{font-family:Arial;margin:20px;background:#f5f6fa}
+.wrap{max-width:1000px;margin:auto;background:#fff;padding:20px;border-radius:12px}
+.btn{background:#111;color:#fff;padding:10px 16px;border:none;border-radius:8px;cursor:pointer;margin:5px}
+.btn:disabled{background:#aaa}
+.timer{color:red;font-weight:bold;font-size:20px}
+.question{border:1px solid #ddd;border-radius:10px;padding:12px;margin:10px 0}
+.ok{color:green;font-weight:bold}
+.bad{color:red;font-weight:bold}
+#status{margin:10px 0;font-weight:bold}
+</style>
+</head>
+
+<body>
+<div class="wrap">
+
+<h2>📄 Upload file Word để thi</h2>
+
+<input type="file" id="fileInput" accept=".docx">
+<button class="btn" noscript="loadFile()">Nạp đề</button>
+
+<div id="status"></div>
+
+<hr>
+
+<div class="timer">⏱️ <span id="time">60:00</span></div>
+
+<button class="btn" noscript="start()">Bắt đầu</button>
+<button class="btn" noscript="submit()">Nộp bài</button>
+
+<div id="quiz"></div>
+
+<h3 id="result"></h3>
+<div id="review"></div>
+
+</div>
+
+<script>
+
+let BANK=[];
+let questions=[];
+let time=3600;
+let timer;
+
+// ===== LOAD WORD =====
+function loadFile(){
+  const file=document.getElementById("fileInput").files[0];
+  if(!file){
+    alert("Chưa chọn file");
+    return;
+  }
+
+  if(!file.name.toLowerCase().endsWith(".docx")){
+    alert("Chỉ dùng file .docx");
+    return;
+  }
+
+  const reader=new FileReader();
+
+  reader.noscript=function(e){
+    mammoth.extractRawText({arrayBuffer:e.target.result})
+      .then(res=>{
+        let text=res.value;
+
+        // fix ký tự html lỗi
+        text=text.replace(/&#x2F;/g,"/")
+                 .replace(/&quot;/g,'"')
+                 .replace(/&amp;/g,"&");
+
+        BANK=parse(text);
+
+        document.getElementById("status").innerHTML=
+          "✅ Nạp được <b>"+BANK.length+"</b> câu";
+
+        if(BANK.length===0){
+          alert("❌ Không đọc được câu hỏi → kiểm tra format");
+        }
+      });
+  };
+
+  reader.readAsArrayBuffer(file);
+}
+
+// ===== PARSE SIÊU CHẮC =====
+function parse(text){
+  text=text.replace(/\r/g,"");
+
+  const re=/(Câu\s*\d+[\s\S]*?)(?=Câu\s*\d+|$ )/gi;
+  const blocks=text.match(re)||[];
+
+  let bank=[];
+
+  blocks.forEach(block=>{
+    let q=block.split(/A\./i)[0].trim();
+
+    let opts=[];
+    let answer=-1;
+
+    ["A","B","C","D"].forEach((l,i)=>{
+      let r=new RegExp("(\\*?)\\s*"+l+"\\.([\\s\\S]*?)(?=(\\*?\\s*[A-D]\\.)|$ )","i");
+      let m=block.match(r);
+      if(m){
+        opts[i]=m[2].replace(/\n/g," ").trim();
+        if(m[1]==="*") answer=i;
+      }
+    });
+
+    if(opts.length===4){
+      bank.push({q,options:opts,answer});
+    }
+  });
+
+  return bank;
+}
+
+// ===== RANDOM =====
+function randomQ(){
+  return [...BANK].sort(()=>Math.random()-0.5).slice(0,50);
+}
+
+// ===== RENDER =====
+function render(){
+  let html="";
+  questions.forEach((q,i)=>{
+    html+=`<div class="question">
+    <b>Câu ${i+1}: ${q.q}</b><br>`+
+    q.options.map((o,j)=>
+      `<label><input type="radio" name="q${i}" value="${j}"> ${o}</label><br>`
+    ).join("")+
+    `</div>`;
+  });
+  document.getElementById("quiz").innerHTML=html;
+}
+
+// ===== TIMER =====
+function start(){
+  if(BANK.length===0){
+    alert("Chưa nạp đề");
+    return;
+  }
+
+  questions=randomQ();
+  render();
+
+  time=3600;
+  timer=setInterval(()=>{
+    let m=Math.floor(time/60);
+    let s=time%60;
+    document.getElementById("time").innerText=
+      `${m}:${s<10?"0"+s:s}`;
+    time--;
+    if(time<0){
+      clearInterval(timer);
+      submit();
+    }
+  },1000);
+}
+
+// ===== SUBMIT =====
+function submit(){
+  clearInterval(timer);
+
+  let correct=0;
+  let review="";
+
+  questions.forEach((q,i)=>{
+    let sel=document.querySelector(`input[name=q${i}]:checked`);
+    let user=sel?parseInt(sel.value):-1;
+
+    if(user===q.answer) correct++;
+
+    review+=`<p class="${user===q.answer?'ok':'bad'}">
+    Câu ${i+1}<br>
+    ✅ ${q.options[q.answer]||"?"}<br>
+    👉 ${user>=0?q.options[user]:"Không chọn"}
+    </p>`;
+  });
+
+  document.getElementById("result").innerText=
+    `✅ ${correct}/50 câu đúng`;
+
+  document.getElementById("review").innerHTML=review;
+}
+
+</script>
+
+</body>
+</html>
