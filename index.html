@@ -6,31 +6,78 @@
   <title>Thi thử 50 câu | 60 phút</title>
   <script src="https://cdn.jsdelivr.net/npm/mammoth/mammoth.browser.min.js"></script>
   <style>
-    body{font-family:Arial,sans-serif;margin:20px;background:#f7f8fa;color:#222}
-    .wrap{max-width:1000px;margin:auto;background:#fff;padding:20px;border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,.08)}
+    body{
+      font-family:Arial,sans-serif;
+      margin:20px;
+      background:#f5f7fb;
+      color:#222;
+    }
+    .wrap{
+      max-width:1000px;
+      margin:auto;
+      background:#fff;
+      padding:20px;
+      border-radius:14px;
+      box-shadow:0 2px 10px rgba(0,0,0,.08);
+    }
     h2{margin-top:0}
-    .btn{background:#111;color:#fff;border:none;padding:10px 16px;border-radius:8px;cursor:pointer;margin-right:8px}
-    .btn:disabled{background:#999;cursor:not-allowed}
-    .question{border:1px solid #ddd;border-radius:10px;padding:12px;margin:12px 0;background:#fff}
-    .timer{color:red;font-weight:bold;font-size:20px;margin:10px 0}
+    .btn{
+      background:#111;
+      color:#fff;
+      border:none;
+      padding:10px 16px;
+      border-radius:8px;
+      cursor:pointer;
+      margin-right:8px;
+      margin-top:8px;
+    }
+    .btn:disabled{
+      background:#999;
+      cursor:not-allowed;
+    }
+    .question{
+      border:1px solid #ddd;
+      border-radius:10px;
+      padding:12px;
+      margin:12px 0;
+      background:#fff;
+    }
+    .timer{
+      color:red;
+      font-weight:bold;
+      font-size:22px;
+      margin:10px 0;
+    }
     .ok{color:green;font-weight:bold}
     .bad{color:red;font-weight:bold}
     .muted{color:#666;font-size:14px}
-    #status{margin:12px 0;font-weight:bold;white-space:pre-line}
-    #debug{background:#f5f5f5;border:1px solid #ddd;padding:10px;border-radius:8px;font-size:13px;white-space:pre-wrap}
+    #status{
+      margin:12px 0;
+      font-weight:bold;
+      white-space:pre-line;
+    }
+    #debug{
+      background:#f6f6f6;
+      border:1px solid #ddd;
+      padding:10px;
+      border-radius:8px;
+      font-size:13px;
+      white-space:pre-wrap;
+    }
   </style>
 </head>
 <body>
   <div class="wrap">
     <h2>📄 Upload file Word để thi</h2>
     <p class="muted">
-      Chỉ hỗ trợ file <b>.docx chuẩn</b>. File phải có dạng <b>Câu 1:</b> ... và đáp án đúng có dấu <b>*</b> trước A/B/C/D, ví dụ <b>*A.</b>
+      Hỗ trợ file <b>.docx</b>. File có dạng <b>Câu 1:</b> ... và đáp án đúng có dấu <b>*</b> trước A/B/C/D, ví dụ <b>*A.</b>
     </p>
 
     <input type="file" id="fileInput" accept=".docx" />
     <button class="btn" id="btnLoad">Nạp đề</button>
 
     <div id="status">Chưa nạp đề.</div>
+
     <details>
       <summary><b>🔍 Debug</b></summary>
       <div id="debug">Chưa có dữ liệu.</div>
@@ -42,6 +89,7 @@
 
     <button class="btn" id="btnStart" disabled>Bắt đầu</button>
     <button class="btn" id="btnSubmit" disabled>Nộp bài</button>
+    <button class="btn" id="btnReload">Làm đề mới</button>
 
     <div id="quiz"></div>
 
@@ -59,6 +107,8 @@
     const btnLoad = document.getElementById("btnLoad");
     const btnStart = document.getElementById("btnStart");
     const btnSubmit = document.getElementById("btnSubmit");
+    const btnReload = document.getElementById("btnReload");
+
     const statusDiv = document.getElementById("status");
     const debugDiv = document.getElementById("debug");
     const quizDiv = document.getElementById("quiz");
@@ -68,17 +118,17 @@
 
     function shuffle(arr){
       const a = [...arr];
-      for(let i=a.length-1;i>0;i--){
-        const j = Math.floor(Math.random()*(i+1));
-        [a[i],a[j]] = [a[j],a[i]];
+      for(let i = a.length - 1; i > 0; i--){
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
       }
       return a;
     }
 
     function formatTime(sec){
-      const m = Math.floor(sec/60);
-      const s = sec%60;
-      return `${m}:${s<10?"0"+s:s}`;
+      const m = Math.floor(sec / 60);
+      const s = sec % 60;
+      return `${m}:${s < 10 ? "0" + s : s}`;
     }
 
     function decodeHtmlEntities(str){
@@ -88,7 +138,7 @@
     }
 
     function parseQuestions(text){
-      text = decodeHtmlEntities(text).replace(/\r/g,"");
+      text = decodeHtmlEntities(text).replace(/\r/g, "");
 
       const reSplit = /(?:^|\n)\s*(?:Câu|CÂU|câu)\s*(\d+)\s*[:.]\s*/g;
       let match, lastIndex = 0;
@@ -97,7 +147,7 @@
 
       while((match = reSplit.exec(text)) !== null){
         const start = match.index;
-        const no = parseInt(match[1],10);
+        const no = parseInt(match[1], 10);
 
         if(currNo !== null){
           items.push({ no: currNo, block: text.slice(lastIndex, start) });
@@ -111,7 +161,7 @@
       }
 
       function cleanLine(s){
-        return (s || "").replace(/\n+/g," ").replace(/\s+/g," ").trim();
+        return (s || "").replace(/\n+/g, " ").replace(/\s+/g, " ").trim();
       }
 
       function extractOption(block, letter){
@@ -160,15 +210,18 @@
 
     function renderQuiz(){
       quizDiv.innerHTML = "";
+      resultDiv.innerHTML = "";
+      reviewDiv.innerHTML = "";
+
       questions.forEach((q, i) => {
         const div = document.createElement("div");
         div.className = "question";
         div.innerHTML = `
-          <b>Câu ${i+1}:</b> ${q.q}<br><br>
-          ${q.options.map((opt,j)=>`
+          <b>Câu ${i + 1}:</b> ${q.q}<br><br>
+          ${q.options.map((opt, j) => `
             <label>
               <input type="radio" name="q${i}" value="${j}">
-              <b>${String.fromCharCode(65+j)}.</b> ${opt}
+              <b>${String.fromCharCode(65 + j)}.</b> ${opt}
             </label><br>
           `).join("")}
         `;
@@ -177,9 +230,10 @@
     }
 
     function startTimer(){
+      clearInterval(timer);
       time = 3600;
       timeDiv.textContent = formatTime(time);
-      clearInterval(timer);
+
       timer = setInterval(() => {
         time--;
         timeDiv.textContent = formatTime(time);
@@ -204,10 +258,10 @@
 
         reviewHtml += `
           <div class="question">
-            <b>Câu ${i+1}:</b> ${q.q}<br>
-            <div class="${isCorrect ? "ok":"bad"}">${isCorrect ? "ĐÚNG" : "SAI"}</div>
-            <div><b>Đáp án đúng:</b> ${q.answer >= 0 ? String.fromCharCode(65+q.answer)+". "+q.options[q.answer] : "Không xác định"}</div>
-            <div><b>Bạn chọn:</b> ${user >= 0 ? String.fromCharCode(65+user)+". "+q.options[user] : "Không chọn"}</div>
+            <b>Câu ${i + 1}:</b> ${q.q}<br>
+            <div class="${isCorrect ? "ok" : "bad"}">${isCorrect ? "ĐÚNG" : "SAI"}</div>
+            <div><b>Đáp án đúng:</b> ${q.answer >= 0 ? String.fromCharCode(65 + q.answer) + ". " + q.options[q.answer] : "Không xác định"}</div>
+            <div><b>Bạn chọn:</b> ${user >= 0 ? String.fromCharCode(65 + user) + ". " + q.options[user] : "Không chọn"}</div>
           </div>
         `;
       });
@@ -217,7 +271,7 @@
       btnSubmit.disabled = true;
     }
 
-    btnLoad.addEventListener("click", () => {
+    btnLoad.addEventListener("click", async () => {
       const file = fileInput.files[0];
 
       if(!file){
@@ -228,59 +282,58 @@
       statusDiv.textContent = "⏳ Đang đọc file...";
       debugDiv.textContent = `Tên file: ${file.name}\nDung lượng: ${file.size} bytes`;
 
-      if(!file.name.toLowerCase().endsWith(".docx")){
-        statusDiv.textContent = "❌ Chỉ hỗ trợ file .docx";
-        return;
+      btnStart.disabled = true;
+      btnSubmit.disabled = true;
+      quizDiv.innerHTML = "";
+      resultDiv.innerHTML = "";
+      reviewDiv.innerHTML = "";
+
+      try {
+        if(typeof mammoth === "undefined"){
+          throw new Error("Thư viện mammoth chưa tải được. Hãy F5 rồi thử lại.");
+        }
+
+        if(!file.name.toLowerCase().endsWith(".docx")){
+          throw new Error("Chỉ hỗ trợ file .docx");
+        }
+
+        const arrayBuffer = await file.arrayBuffer();
+
+        statusDiv.textContent = "⏳ Đang trích xuất nội dung từ file Word...";
+
+        const result = await mammoth.extractRawText({ arrayBuffer });
+        const rawText = result.value || "";
+
+        const parsed = parseQuestions(rawText);
+        BANK = parsed.bank;
+
+        debugDiv.textContent =
+          `Tên file: ${file.name}\n` +
+          `Dung lượng: ${file.size} bytes\n` +
+          `Ký tự đọc được: ${rawText.length}\n` +
+          `Parse được: ${BANK.length} câu\n` +
+          `Thiếu đáp án *: ${parsed.missingAnswer}\n\n` +
+          `300 ký tự đầu:\n${rawText.slice(0, 300)}`;
+
+        if(rawText.trim().length === 0){
+          throw new Error("File đọc ra rỗng. File .docx có thể không chuẩn.");
+        }
+
+        if(BANK.length === 0){
+          throw new Error("Không parse được câu hỏi. Kiểm tra lại format Câu/A/B/C/D/*.");
+        }
+
+        statusDiv.innerHTML =
+          `✅ Đã nạp thành công <b>${BANK.length}</b> câu` +
+          (BANK.length < 50 ? `\n⚠️ Hiện dưới 50 câu, vẫn có thể test với số câu hiện có.` : "");
+
+        btnStart.disabled = false;
+      } catch (err) {
+        console.error(err);
+        statusDiv.textContent = "❌ " + err.message;
+        debugDiv.textContent += `\n\nLỗi:\n${err.message}`;
+        btnStart.disabled = true;
       }
-
-      const reader = new FileReader();
-
-      reader.noscript = function(e){
-        mammoth.extractRawText({ arrayBuffer: e.target.result })
-          .then(result => {
-            const rawText = result.value || "";
-            const parsed = parseQuestions(rawText);
-            BANK = parsed.bank;
-
-            debugDiv.textContent =
-              `Tên file: ${file.name}\n` +
-              `Ký tự đọc được: ${rawText.length}\n` +
-              `Parse được: ${BANK.length} câu\n` +
-              `Thiếu đáp án *: ${parsed.missingAnswer}\n\n` +
-              `300 ký tự đầu:\n${rawText.slice(0,300)}`;
-
-            if(rawText.trim().length === 0){
-              statusDiv.textContent = "❌ File đọc ra rỗng. Khả năng cao file .docx không chuẩn.";
-              btnStart.disabled = true;
-              return;
-            }
-
-            if(BANK.length === 0){
-              statusDiv.textContent = "❌ Không parse được câu hỏi. File không đúng format Câu/A/B/C/D/*.";
-              btnStart.disabled = true;
-              return;
-            }
-
-            statusDiv.innerHTML = `✅ Đã nạp thành công <b>${BANK.length}</b> câu`;
-            btnStart.disabled = false;
-            btnSubmit.disabled = true;
-            resultDiv.innerHTML = "";
-            reviewDiv.innerHTML = "";
-            quizDiv.innerHTML = "";
-          })
-          .catch(err => {
-            console.error(err);
-            statusDiv.textContent = "❌ Lỗi đọc file Word.";
-            debugDiv.textContent = String(err);
-            btnStart.disabled = true;
-          });
-      };
-
-      reader.noscript = function(){
-        statusDiv.textContent = "❌ Không thể đọc file.";
-      };
-
-      reader.readAsArrayBuffer(file);
     });
 
     btnStart.addEventListener("click", () => {
@@ -294,14 +347,25 @@
       startTimer();
       btnSubmit.disabled = false;
       btnStart.disabled = true;
-      resultDiv.innerHTML = "";
-      reviewDiv.innerHTML = "";
     });
 
     btnSubmit.addEventListener("click", () => {
       submitQuiz();
     });
+
+    btnReload.addEventListener("click", () => {
+      if(BANK.length === 0){
+        alert("Chưa nạp đề.");
+        return;
+      }
+      questions = shuffle(BANK).slice(0, Math.min(50, BANK.length));
+      renderQuiz();
+      startTimer();
+      btnSubmit.disabled = false;
+      btnStart.disabled = true;
+    });
   </script>
 </body>
 </html>
+
 
