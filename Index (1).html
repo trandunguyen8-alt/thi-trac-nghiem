@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Thi Trắc Nghiệm 50 Câu - 60 Phút</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    margin: 20px;
+    background: #f9f9f9;
+    color: #333;
+  }
+  h1 {
+    text-align: center;
+    margin-bottom: 0.2em;
+  }
+  #instructions {
+    background: #e3f2fd;
+    border: 1px solid #90caf9;
+    padding: 10px 15px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+    font-size: 0.95em;
+  }
+  #upload-section, #start-section, #quiz-section, #result-section {
+    max-width: 700px;
+    margin: 0 auto 30px auto;
+    background: white;
+    padding: 15px 20px;
+    border-radius: 8px;
+    box-shadow: 0 0 8px rgba(0,0,0,0.1);
+  }
+  #upload-label {
+    display: inline-block;
+    background: #1976d2;
+    color: white;
+    padding: 10px 18px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+    user-select: none;
+  }
+  #upload-label:hover {
+    background: #1565c0;
+  }
+  #file-input {
+    display: none;
+  }
+  #file-name {
+    margin-left: 15px;
+    font-style: italic;
+    color: #555;
+  }
+  #warning {
+    color: #d32f2f;
+    margin-top: 10px;
+    font-weight: bold;
+  }
+  #start-btn {
+    display: block;
+    margin: 20px auto 0 auto;
+    background: #388e3c;
+    color: white;
+    border: none;
+    padding: 12px 25px;
+    font-size: 1.1em;
+    border-radius: 6px;
+    cursor: pointer;
+    user-select: none;
+  }
+  #start-btn:disabled {
+    background: #a5d6a7;
+    cursor: not-allowed;
+  }
+  #timer {
+    font-size: 1.2em;
+    font-weight: bold;
+    text-align: center;
+    margin-bottom: 15px;
+    color: #d32f2f;
+  }
+  #quiz-section {
+    display: none;
+  }
+  .question {
+    margin-bottom: 20px;
+  }
+  .question h3 {
+    margin-bottom: 8px;
+  }
+  .answers label {
+    display: block;
+    margin-bottom: 6px;
+    cursor: pointer;
+  }
+  #submit-btn {
+    background: #1976d2;
+    color: white;
+    border: none;
+    padding: 12px 25px;
+    font-size: 1.1em;
+    border-radius: 6px;
+    cursor: pointer;
+    user-select: none;
+    display: block;
+    margin: 20px auto 0 auto;
+  }
+  #submit-btn:disabled {
+    background: #90caf9;
+    cursor: not-allowed;
+  }
+  #result-section {
+    display: none;
+    max-width: 700px;
+    margin: 0 auto 30px auto;
+    background: #fffde7;
+    border: 1px solid #fbc02d;
+    padding: 15px 20px;
+    border-radius: 8px;
+  }
+  #result-section h2 {
+    color: #fbc02d;
+    margin-bottom: 15px;
+  }
+  .answer-key {
+    margin-top: 10px;
+    font-size: 0.9em;
+    line-height: 1.4em;
+  }
+  .answer-key span {
+    display: inline-block;
+    margin-right: 12px;
+  }
+</style>
+</head>
+<body>
+<h1>Thi Trắc Nghiệm 50 Câu - 60 Phút</h1>
+<div id="instructions">
+  <strong>Hướng dẫn ngắn:</strong> <br />
+  1. Bấm nút "Chọn file Word" để tải lên đề thi định dạng .docx (không hỗ trợ .doc cũ).<br />
+  2. Sau khi tải lên thành công, bấm "Bắt đầu" để làm bài.<br />
+  3. Hệ thống sẽ tự động chọn ngẫu nhiên 50 câu hỏi trong đề.<br />
+  4. Thời gian làm bài là 60 phút, đồng hồ sẽ đếm ngược.<br />
+  5. Sau khi làm xong, bấm "Nộp bài" để xem kết quả và đáp án.<br />
+  <em>Lưu ý: Nếu chọn file .doc cũ sẽ có cảnh báo không hỗ trợ.</em>
+</div>
+
+<div id="upload-section">
+  <label id="upload-label" for="file-input">Chọn file Word (.docx)</label>
+  <input type="file" id="file-input" accept=".docx" />
+  <span id="file-name"></span>
+  <div id="warning"></div>
+</div>
+
+<div id="start-section">
+  <button id="start-btn" disabled>Bắt đầu</button>
+</div>
+
+<div id="timer"></div>
+
+<div id="quiz-section"></div>
+
+<div id="result-section">
+  <h2>Kết quả bài thi</h2>
+  <div id="score"></div>
+  <div id="answer-list" class="answer-key"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mammoth/mammoth.browser.min.js"></script>
+<script>
+  const fileInput = document.getElementById('file-input');
+  const fileNameSpan = document.getElementById('file-name');
+  const warningDiv = document.getElementById('warning');
+  const startBtn = document.getElementById('start-btn');
+  const timerDiv = document.getElementById('timer');
+  const quizSection = document.getElementById('quiz-section');
+  const resultSection = document.getElementById('result-section');
+  const scoreDiv = document.getElementById('score');
+  const answerListDiv = document.getElementById('answer-list');
+
+  let allQuestions = [];
+  let selectedQuestions = [];
+  let userAnswers = {};
+  let timer = null;
+  let timeLeft = 60 * 60; // 60 minutes in seconds
+
+  function resetState() {
+    allQuestions = [];
+    selectedQuestions = [];
+    userAnswers = {};
+    clearInterval(timer);
+    timer = null;
+    timeLeft = 60 * 60;
+    timerDiv.textContent = '';
+    quizSection.innerHTML = '';
+    quizSection.style.display = 'none';
+    resultSection.style.display = 'none';
+    startBtn.disabled = true;
+    fileNameSpan.textContent = '';
+    warningDiv.textContent = '';
+  }
+
+  function formatTime(seconds) {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+  }
+
+  function startTimer() {
+    timerDiv.textContent = `Thời gian còn lại: ${formatTime(timeLeft)}`;
+    timer = setInterval(() => {
+      timeLeft--;
+      timerDiv.textContent = `Thời gian còn lại: ${formatTime(timeLeft)}`;
+      if (timeLeft <= 0) {
+        clearInterval(timer);
+        alert('Hết thời gian làm bài!');
+        submitQuiz();
+      }
+    }, 1000);
+  }
+
+  function parseDocxText(text) {
+    // Giả định đề thi có dạng:
+    // Câu 1. Nội dung câu hỏi
+    // A. Đáp án A
+    // B. Đáp án B
+    // C. Đáp án C
+    // D. Đáp án D
+    // Đáp án: A
+    // Câu 2. ...
+    // Tách text thành từng câu hỏi
+
+    // Tách theo "Câu " + số + "."
+    const questionBlocks = text.split(/\n(?=Câu \d+\.)/g);
+    const questions = [];
+
+    for (let block of questionBlocks) {
+      block = block.trim();
+      if (!block) continue;
+      // Lấy số câu
+      const questionMatch = block.match(/^Câu (\d+)\.\s*(.+?)(?=\n[A-D]\.)/s);
+      if (!questionMatch) continue;
+      const qNum = questionMatch[1];
+      const qContent = questionMatch[2].trim();
+
+      // Lấy đáp án A-D
+      const answers = {};
+      const answerRegex = /([A-D])\.\s*(.+)/g;
+      let m;
+      while ((m = answerRegex.exec(block)) !== null) {
+        answers[m[1]] = m[2].trim();
+      }
+
+      // Lấy đáp án đúng
+      const correctMatch = block.match(/Đáp án:\s*([A-D])/);
+      if (!correctMatch) continue;
+      const correct = correctMatch[1];
+
+      questions.push({
+        number: qNum,
+        question: qContent,
+        answers: answers,
+        correct: correct
+      });
+    }
+    return questions;
+  }
+
+  function renderQuiz() {
+    quizSection.innerHTML = '';
+    selectedQuestions.forEach((q, idx) => {
+      const div = document.createElement('div');
+      div.className = 'question';
+      div.id = `question-${idx}`;
+      const qTitle = document.createElement('h3');
+      qTitle.textContent = `Câu ${q.number}: ${q.question}`;
+      div.appendChild(qTitle);
+
+      const answersDiv = document.createElement('div');
+      answersDiv.className = 'answers';
+
+      for (const [key, val] of Object.entries(q.answers)) {
+        const label = document.createElement('label');
+        const input = document.createElement('input');
+        input.type = 'radio';
+        input.name = `q${idx}`;
+        input.value = key;
+        input.addEventListener('change', () => {
+          userAnswers[idx] = input.value;
+        });
+        label.appendChild(input);
+        label.append(` ${key}. ${val}`);
+        answersDiv.appendChild(label);
+      }
+      div.appendChild(answersDiv);
+      quizSection.appendChild(div);
+    });
+
+    const submitBtn = document.createElement('button');
+    submitBtn.id = 'submit-btn';
+    submitBtn.textContent = 'Nộp bài';
+    submitBtn.addEventListener('click', () => {
+      if (Object.keys(userAnswers).length < selectedQuestions.length) {
+        if (!confirm('Bạn chưa trả lời hết tất cả câu hỏi. Vẫn muốn nộp bài?')) return;
+      }
+      clearInterval(timer);
+      submitQuiz();
+    });
+    quizSection.appendChild(submitBtn);
+    quizSection.style.display = 'block';
+  }
+
+  function submitQuiz() {
+    let correctCount = 0;
+    let answerHtml = '';
+    selectedQuestions.forEach((q, idx) => {
+      const userAns = userAnswers[idx] || '(Chưa chọn)';
+      const isCorrect = userAns === q.correct;
+      if (isCorrect) correctCount++;
+      answerHtml += `<span style=\"color:${isCorrect ? 'green' : 'red'}\">Câu ${q.number}: Đáp án đúng: ${q.correct}, Bạn chọn: ${userAns}</span><br/>`;
+    });
+    scoreDiv.innerHTML = `Bạn đúng ${correctCount} trên ${selectedQuestions.length} câu.`;
+    answerListDiv.innerHTML = answerHtml;
+    quizSection.style.display = 'none';
+    resultSection.style.display = 'block';
+    timerDiv.textContent = '';
+  }
+
+  fileInput.addEventListener('change', () => {
+    resetState();
+    const file = fileInput.files[0];
+    if (!file) return;
+    fileNameSpan.textContent = file.name;
+    warningDiv.textContent = '';
+
+    if (!file.name.toLowerCase().endsWith('.docx')) {
+      warningDiv.textContent = '⚠️ Chỉ hỗ trợ file định dạng .docx, không hỗ trợ .doc cũ.';
+      startBtn.disabled = true;
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = function(event) {
+      const arrayBuffer = reader.result;
+      mammoth.extractRawText({arrayBuffer: arrayBuffer})
+        .then(function(result) {
+          const text = result.value;
+          allQuestions = parseDocxText(text);
+          if (allQuestions.length < 50) {
+            warningDiv.textContent = `⚠️ Đề thi chỉ có ${allQuestions.length} câu hỏi, cần ít nhất 50 câu để thi.`;
+            startBtn.disabled = true;
+            return;
+          }
+          startBtn.disabled = false;
+          warningDiv.textContent = `Đã tải lên thành công ${allQuestions.length} câu hỏi.`;
+        })
+        .catch(function(err) {
+          warningDiv.textContent = '⚠️ Lỗi khi đọc file, vui lòng kiểm tra lại file Word.';
+          startBtn.disabled = true;
+        });
+    };
+    reader.readAsArrayBuffer(file);
+  });
+
+  startBtn.addEventListener('click', () => {
+    if (allQuestions.length < 50) {
+      alert('Đề thi chưa đủ 50 câu hỏi.');
+      return;
+    }
+    // Random 50 câu hỏi
+    selectedQuestions = [];
+    const usedIndexes = new Set();
+    while (selectedQuestions.length < 50) {
+      const idx = Math.floor(Math.random() * allQuestions.length);
+      if (!usedIndexes.has(idx)) {
+        usedIndexes.add(idx);
+        selectedQuestions.push(allQuestions[idx]);
+      }
+    }
+    userAnswers = {};
+    renderQuiz();
+    startTimer();
+    startBtn.disabled = true;
+    fileInput.disabled = true;
+    warningDiv.textContent = '';
+  });
+</script>
+</body>
+</html>
